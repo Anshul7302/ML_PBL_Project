@@ -1,0 +1,8 @@
+# ML only (training + tests). The API needs backend/requirements.txt as well.
+numpy
+pandas
+scikit-learn
+xgboost
+joblib
+matplotlib
+pytest

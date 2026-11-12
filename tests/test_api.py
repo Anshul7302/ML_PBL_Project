@@ -60,4 +60,15 @@ def test_simulate_history_and_stats(client):
 
 
 def test_model_info(client):
-    assert "models" in client.get("/api/model").json()
+    payload = client.get("/api/model").json()
+    assert "models" in payload
+    assert "feature_selection" in payload
+    assert "importance" in payload["feature_selection"]
+    assert payload["best_model"] in payload["models"]
+
+
+def test_model_retrains_after_new_detection(client):
+    before = client.get("/api/model").json()
+    client.post("/api/simulate", json={"count": 25, "attack_ratio": 0.7})
+    after = client.get("/api/model").json()
+    assert after["rows"] > before["rows"]

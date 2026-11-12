@@ -31,7 +31,7 @@ Dataset / traffic → preprocessing → feature selection → Random Forest / XG
 docker compose up --build
 # dashboard: http://localhost:5173     API docs: http://localhost:8000/docs
 ```
-The API image trains a quick-start model on synthetic data if `models/detector.joblib` is missing.
+The app prefers the real dataset in `data/*.csv`. If no CSV files are present, Docker will use the explicit synthetic demo mode instead of silently training on fake data.
 
 ## Quick start (manual)
 
@@ -39,8 +39,11 @@ The API image trains a quick-start model on synthetic data if `models/detector.j
 # 1. ML + API dependencies
 pip install -r requirements.txt -r backend/requirements.txt
 
-# 2. Train (synthetic data) - writes models/detector.joblib, metrics.json, confusion_matrix.png
+# 2. Add CIC-IDS2017 CSV files into data/ and train on the real dataset
 python scripts/train.py
+
+# If you do not have the real dataset yet, use the synthetic demo mode explicitly
+python scripts/train.py --synthetic --rows 60000
 
 # 3. API (SQLite by default; set DATABASE_URL for PostgreSQL)
 export DATABASE_URL=postgresql+psycopg2://user:pass@localhost:5432/threatdb   # optional

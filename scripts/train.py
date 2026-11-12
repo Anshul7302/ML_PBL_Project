@@ -3,7 +3,8 @@
 
 Usage
 -----
-  python scripts/train.py                          # synthetic quick-start data
+  python scripts/train.py                          # use real data/*.csv when present
+  python scripts/train.py --synthetic               # explicit demo data mode
   python scripts/train.py --csv data/*.csv         # real CIC-IDS2017 CSV files
   python scripts/train.py --rows 100000 --out models
 
@@ -47,13 +48,32 @@ SEED = 42
 
 
 # ---------------------------------------------------------------- data / features
+def find_real_csvs() -> list[str]:
+    data_dir = ROOT / "data"
+    files = []
+    for pat in ("*.csv", "**/*.csv"):
+        files.extend(str(p) for p in data_dir.glob(pat))
+    return sorted(set(files))
+
+
 def load_data(args) -> tuple[pd.DataFrame, str]:
     if args.csv:
         paths = [str(p) for pat in args.csv for p in (Path().glob(pat) if "*" in pat else [Path(pat)])]
         print(f"[1/6] Loading {len(paths)} CIC-IDS2017 file(s)...")
         return load_cic_ids2017(paths), "CIC-IDS2017"
-    print(f"[1/6] Generating {args.rows} synthetic flows (no --csv given)...")
-    return generate_flows(args.rows, seed=SEED), "synthetic"
+
+    real_csvs = find_real_csvs()
+    if real_csvs and not getattr(args, "synthetic", False):
+        print(f"[1/6] Loading {len(real_csvs)} CIC-IDS2017 file(s) from data/...")
+        return load_cic_ids2017(real_csvs), "CIC-IDS2017"
+
+    if getattr(args, "synthetic", False):
+        print(f"[1/6] Generating {args.rows} synthetic flows (explicit synthetic mode)...")
+        return generate_flows(args.rows, seed=SEED), "synthetic"
+
+    raise FileNotFoundError(
+        "No CSV files found in data/. Add the CIC-IDS2017 dataset or run with --synthetic to use demo traffic."
+    )
 
 
 def select_features(X: pd.DataFrame, y: np.ndarray) -> tuple[list[str], dict]:
@@ -128,7 +148,9 @@ def plot_cm(cm, classes, title, path):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--csv", nargs="*", help="CIC-IDS2017 CSV path(s) or glob(s)")
-    ap.add_argument("--rows", type=int, default=60000, help="synthetic rows when no --csv")
+    ap.add_argument("--synthetic", action="store_true",
+                    help="Generate synthetic demo data instead of using data/*.csv")
+    ap.add_argument("--rows", type=int, default=60000, help="synthetic rows when using --synthetic")
     ap.add_argument("--max-rows", type=int, default=400000, help="subsample real data to this size")
     ap.add_argument("--out", default=str(ROOT / "models"))
     args = ap.parse_args()
